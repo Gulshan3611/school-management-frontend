@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, UserCheck, BookOpen, GraduationCap, IndianRupee, BellRing, CalendarDays, Server, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { dashboardApi } from '../services/api';
+import { dashboardApi, healthCheck } from '../services/api';
 
 function StatCard({ title, value, subtext, icon: Icon, colorClass, loading }) {
   return (
@@ -41,7 +41,7 @@ export function Dashboard() {
 
   const checkBackend = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/health');
+      const response = await healthCheck();
       const data = await response.json();
       if (data.status === 'ok') setBackendStatus('Connected');
       else setBackendStatus('Error');
