@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://51.20.95.217'
+      '/api': 'https://imported-proteins-prostores-hottest.trycloudflare.com'
     }
   }
 })
