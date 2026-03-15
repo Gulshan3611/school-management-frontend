@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://imported-proteins-prostores-hottest.trycloudflare.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+console.log('API Base URL:', API_BASE_URL);
+// || 'https://thunder-recordings-hundreds-date.trycloudflare.com/api';
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
