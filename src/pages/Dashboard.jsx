@@ -42,10 +42,13 @@ export function Dashboard() {
   const checkBackend = async () => {
     try {
       const response = await healthCheck();
-      const data = await response.json();
+      console.log('Health Check Raw Response:', response);
+      const data = response; // Assuming healthCheck returns parsed JSON
+      console.log('Health Check Response:', data);
       if (data.status === 'ok') setBackendStatus('Connected');
       else setBackendStatus('Error');
-    } catch {
+    } catch (er){
+      console.error('Backend health check failed', er.message);
       setBackendStatus('Disconnected');
     }
   };

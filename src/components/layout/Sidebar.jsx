@@ -1,16 +1,21 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserCheck, 
-  BookOpen, 
-  GraduationCap, 
-  IndianRupee, 
-  UserSquare, 
+import {
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  BookOpen,
+  GraduationCap,
+  IndianRupee,
+  UserSquare,
   BusFront,
-  Type
+  Bell,
+  Calendar,
+  BookOpenCheck,
+  FileCheck,
+  FileClock,
+  Route
 } from 'lucide-react';
-import { cn } from '../../lib/utils'; // wait, I just created this, need to ensure correct path
+import { cn } from '../../lib/utils';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -21,7 +26,12 @@ const navItems = [
   { name: 'Fee Management', path: '/fees', icon: IndianRupee },
   { name: 'Teachers & Staff', path: '/staff', icon: UserSquare },
   { name: 'Transport', path: '/transport', icon: BusFront },
-  { name: 'Typography', path: '/fonts', icon: Type },
+  { name: 'Notices', path: '/notices', icon: Bell },
+  { name: 'Timetable', path: '/timetable', icon: Calendar },
+  { name: 'Homework', path: '/homework', icon: BookOpenCheck },
+  { name: 'Syllabus', path: '/syllabus', icon: FileCheck },
+  { name: 'Leave Management', path: '/leaves', icon: FileClock },
+  { name: 'Transport Allocation', path: '/transport-allocation', icon: Route },
 ];
 
 export function Sidebar() {
@@ -32,7 +42,7 @@ export function Sidebar() {
           Vidya<span className="text-saffron-500">ERP</span>
         </h1>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto py-6">
         <nav className="space-y-1 px-3">
           {navItems.map((item) => (
@@ -54,7 +64,7 @@ export function Sidebar() {
           ))}
         </nav>
       </div>
-      
+
       <div className="p-4 border-t border-navy-700 bg-navy-800/50">
         <div className="flex items-center">
           <div className="h-8 w-8 rounded-full bg-saffron-500 flex items-center justify-center text-white font-bold">

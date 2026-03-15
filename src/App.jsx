@@ -9,6 +9,12 @@ import { Fees } from './pages/Fees';
 import { Staff } from './pages/Staff';
 import { Transport } from './pages/Transport';
 import { FontPreview } from './pages/FontPreview';
+import { Notices } from './pages/Notices';
+import { Timetable } from './pages/Timetable';
+import { Homework } from './pages/Homework';
+import { Syllabus } from './pages/Syllabus';
+import { Leaves } from './pages/Leaves';
+import { TransportAllocation } from './pages/TransportAllocation';
 
 // Placeholder generic component for pages
 function PlaceholderPage({ title }) {
@@ -33,6 +39,12 @@ function App() {
           <Route path="fees" element={<Fees />} />
           <Route path="staff" element={<Staff />} />
           <Route path="transport" element={<Transport />} />
+          <Route path="notices" element={<Notices />} />
+          <Route path="timetable" element={<Timetable />} />
+          <Route path="homework" element={<Homework />} />
+          <Route path="syllabus" element={<Syllabus />} />
+          <Route path="leaves" element={<Leaves />} />
+          <Route path="transport-allocation" element={<TransportAllocation />} />
           <Route path="fonts" element={<FontPreview />} />
         </Route>
       </Routes>
