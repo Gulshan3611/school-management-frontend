@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Filter, Download, X, Loader } from 'lucide-react';
+import { Search, Plus, Filter, Download, X, Loader, Edit2, Trash2 } from 'lucide-react';
 import { studentsApi, classesApi } from '../services/api';
 
 export function Students() {
   const [activeTab, setActiveTab] = useState('directory');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,10 +42,16 @@ export function Students() {
       try {
         await studentsApi.delete(id);
         setStudents(students.filter(s => s.id !== id));
+        alert('Student deleted successfully!');
       } catch (err) {
         alert('Failed to delete student');
       }
     }
+  };
+
+  const handleEdit = (student) => {
+    setEditingStudent(student);
+    setShowEditModal(true);
   };
 
   const filteredStudents = students.filter(student => {
@@ -93,7 +101,7 @@ export function Students() {
             </div>
 
             <div className="flex gap-3 w-full sm:w-auto">
-              <select 
+              <select
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
                 className="!py-2 !px-4 !rounded-xl !bg-slate-50 !border-slate-200 !w-auto"
@@ -103,7 +111,7 @@ export function Students() {
                   <option key={cls.id} value={cls.id}>{cls.name}</option>
                 ))}
               </select>
-              <select 
+              <select
                 value={selectedSection}
                 onChange={(e) => setSelectedSection(e.target.value)}
                 className="!py-2 !px-4 !rounded-xl !bg-slate-50 !border-slate-200 !w-auto"
@@ -157,17 +165,23 @@ export function Students() {
                       <td>{student.dob ? new Date(student.dob).toLocaleDateString('en-IN') : '-'}</td>
                       <td>{student.parentContact || '-'}</td>
                       <td className="text-right">
-                        <button 
+                        <button
                           onClick={() => setSelectedStudent(student)}
-                          className="text-navy-600 hover:text-navy-900 font-semibold mr-4 text-sm"
+                          className="text-navy-600 hover:text-navy-900 font-semibold mr-3 text-sm inline-flex items-center"
                         >
                           View
                         </button>
                         <button
-                          onClick={() => setSelectedStudent(student)}
-                          className="text-saffron-500 hover:text-saffron-600 font-semibold text-sm whitespace-nowrap"
+                          onClick={() => handleEdit(student)}
+                          className="text-blue-600 hover:text-blue-800 font-semibold mr-3 text-sm inline-flex items-center"
                         >
-                          Print ID
+                          <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(student.id)}
+                          className="text-red-600 hover:text-red-800 font-semibold text-sm inline-flex items-center"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                         </button>
                       </td>
                     </tr>
@@ -178,19 +192,37 @@ export function Students() {
           </div>
         </div>
       ) : (
-        <AdmissionForm 
-          classes={classes} 
+        <AdmissionForm
+          classes={classes}
           onSuccess={() => {
             setActiveTab('directory');
             loadData();
-          }} 
-          onCancel={() => setActiveTab('directory')} 
+          }}
+          onCancel={() => setActiveTab('directory')}
         />
       )}
 
       {/* ID Card Modal */}
       {selectedStudent && (
         <IDCardModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditModal && editingStudent && (
+        <EditStudentModal
+          student={editingStudent}
+          classes={classes}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingStudent(null);
+          }}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setEditingStudent(null);
+            loadData();
+            alert('Student updated successfully!');
+          }}
+        />
       )}
     </div>
   );
@@ -244,7 +276,6 @@ function AdmissionForm({ classes, onSuccess, onCancel }) {
           </div>
         )}
 
-        {/* Student Details */}
         <div>
           <h3 className="text-xs font-bold text-saffron-500 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">1. Student Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
@@ -294,7 +325,6 @@ function AdmissionForm({ classes, onSuccess, onCancel }) {
           </div>
         </div>
 
-        {/* Academic Details */}
         <div>
           <h3 className="text-sm font-bold border-b border-slate-200 pb-2 mb-4 text-navy-700 uppercase tracking-wider">2. Academic Entry</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -343,6 +373,157 @@ function AdmissionForm({ classes, onSuccess, onCancel }) {
   );
 }
 
+// Edit Student Modal Component
+function EditStudentModal({ student, classes, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({
+    name: student.name,
+    rollNumber: student.rollNumber,
+    classId: student.classId,
+    sectionId: student.sectionId,
+    dob: student.dob ? student.dob.split('T')[0] : '',
+    parentContact: student.parentContact || ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.rollNumber || !formData.classId || !formData.sectionId) {
+      setError('Please fill all required fields');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+      await studentsApi.update(student.id, formData);
+      onSuccess();
+    } catch (err) {
+      setError('Failed to update student. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const selectedClass = classes.find(c => c.id === parseInt(formData.classId));
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 z-10 bg-white rounded-full p-1"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="p-6 border-b border-slate-100">
+          <h2 className="text-xl font-display font-bold text-navy-900">Edit Student Details</h2>
+          <p className="text-sm text-slate-500 mt-1">Update student information</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <h3 className="text-xs font-bold text-saffron-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Student Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth *</label>
+                <input
+                  type="date"
+                  value={formData.dob}
+                  onChange={(e) => setFormData({...formData, dob: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Roll Number *</label>
+                <input
+                  type="number"
+                  value={formData.rollNumber}
+                  onChange={(e) => setFormData({...formData, rollNumber: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Parent Contact *</label>
+                <input
+                  type="tel"
+                  value={formData.parentContact}
+                  onChange={(e) => setFormData({...formData, parentContact: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold text-saffron-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Academic Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Class *</label>
+                <select
+                  value={formData.classId}
+                  onChange={(e) => setFormData({...formData, classId: e.target.value, sectionId: ''})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500 bg-white"
+                  required
+                >
+                  <option value="">Select Class</option>
+                  {classes.map(cls => (
+                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Section *</label>
+                <select
+                  value={formData.sectionId}
+                  onChange={(e) => setFormData({...formData, sectionId: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500 bg-white"
+                  disabled={!formData.classId}
+                  required
+                >
+                  <option value="">Select Section</option>
+                  {selectedClass?.sections.map(sec => (
+                    <option key={sec.id} value={sec.id}>{sec.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="btn btn-outline">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="btn btn-accent">
+              {submitting ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ID Card Modal Component
 function IDCardModal({ student, onClose }) {
   return (
@@ -355,7 +536,6 @@ function IDCardModal({ student, onClose }) {
           <X className="h-5 w-5" />
         </button>
 
-        {/* ID Card Design */}
         <div className="border border-slate-200 m-4 rounded-lg overflow-hidden bg-white shadow-sm relative">
           <div className="bg-navy-900 text-white text-center py-4 px-2">
             <h2 className="text-lg font-bold uppercase tracking-wider">VidyaERP Public School</h2>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, IndianRupee, Printer, AlertCircle, X, Check, Loader } from 'lucide-react';
+import { Search, IndianRupee, Printer, AlertCircle, X, Check, Loader, Plus, Edit2, Trash2 } from 'lucide-react';
 import { feesApi, studentsApi } from '../services/api';
 
 export function Fees() {
@@ -9,6 +9,10 @@ export function Fees() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showModal, setShowModal] = useState(false);
+  const [editingFee, setEditingFee] = useState(null);
+  const [feeToDelete, setFeeToDelete] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -36,11 +40,40 @@ export function Fees() {
     }
   };
 
+  const handleEdit = (fee) => {
+    setEditingFee(fee);
+    setShowModal(true);
+  };
+
+  const handleDeleteClick = (fee) => {
+    setFeeToDelete(fee);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await feesApi.delete(feeToDelete.id);
+      setFees(fees.filter(f => f.id !== feeToDelete.id));
+      setShowDeleteConfirm(false);
+      setFeeToDelete(null);
+      alert('Fee record deleted successfully!');
+    } catch (error) {
+      alert('Failed to delete fee record');
+    }
+  };
+
+  const handleFeeSuccess = () => {
+    setShowModal(false);
+    setEditingFee(null);
+    loadData();
+    alert(editingFee ? 'Fee updated successfully!' : 'Fee record created successfully!');
+  };
+
   const filteredFees = fees.filter(fee => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       fee.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       fee.student.id.toString().includes(searchTerm);
-    
+
     if (filterStatus === 'paid') return matchesSearch && fee.isPaid;
     if (filterStatus === 'pending') return matchesSearch && !fee.isPaid;
     return matchesSearch;
@@ -96,15 +129,26 @@ export function Fees() {
                 className="w-full pl-11 !rounded-xl !bg-slate-50 !border-slate-200"
               />
             </div>
-            <select 
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="!py-2 !px-4 !rounded-xl !bg-slate-50 !border-slate-200 !w-auto"
-            >
-              <option value="all">All Status</option>
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-            </select>
+            <div className="flex gap-3">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="!py-2 !px-4 !rounded-xl !bg-slate-50 !border-slate-200 !w-auto"
+              >
+                <option value="all">All Status</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+              </select>
+              <button
+                onClick={() => {
+                  setEditingFee(null);
+                  setShowModal(true);
+                }}
+                className="btn btn-primary flex items-center"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add Fee
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -148,12 +192,32 @@ export function Fees() {
                       <td className="font-display text-lg font-bold text-right text-navy-900">₹{fee.amount.toLocaleString('en-IN')}</td>
                       <td className="text-right">
                         {!fee.isPaid ? (
-                          <button onClick={() => handleReceivePayment(fee)} className="btn btn-accent !px-4 !py-1.5 !text-xs whitespace-nowrap ml-auto">Receive Pay</button>
+                          <button 
+                            onClick={() => handleReceivePayment(fee)} 
+                            className="btn btn-accent !px-4 !py-1.5 !text-xs whitespace-nowrap mr-2"
+                          >
+                            Receive Pay
+                          </button>
                         ) : (
-                          <button onClick={() => generateReceipt(fee)} className="btn btn-outline !px-4 !py-1.5 !text-xs whitespace-nowrap flex items-center ml-auto">
+                          <button 
+                            onClick={() => generateReceipt(fee)} 
+                            className="btn btn-outline !px-4 !py-1.5 !text-xs whitespace-nowrap inline-flex items-center mr-2"
+                          >
                             <Printer className="w-3 h-3 mr-1" /> Receipt
                           </button>
                         )}
+                        <button
+                          onClick={() => handleEdit(fee)}
+                          className="text-blue-600 hover:text-blue-800 font-semibold mr-2 text-sm inline-flex items-center"
+                        >
+                          <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(fee)}
+                          className="text-red-600 hover:text-red-800 font-semibold text-sm inline-flex items-center"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -167,6 +231,180 @@ export function Fees() {
       {activeTab === 'dues' && <OutstandingDues />}
 
       {selectedReceipt && <ReceiptModal receipt={selectedReceipt} onClose={() => setSelectedReceipt(null)} />}
+
+      {/* Fee Form Modal */}
+      {showModal && (
+        <FeeForm
+          fee={editingFee}
+          onClose={() => {
+            setShowModal(false);
+            setEditingFee(null);
+          }}
+          onSuccess={handleFeeSuccess}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-navy-900 mb-2">Delete Fee Record</h3>
+              <p className="text-slate-600 mb-6">
+                Are you sure you want to delete this fee record for "{feeToDelete?.student.name}"? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setFeeToDelete(null);
+                  }}
+                  className="btn btn-outline"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FeeForm({ fee, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({
+    studentId: fee?.studentId || '',
+    amount: fee?.amount || '',
+    dueDate: fee?.dueDate ? fee.dueDate.split('T')[0] : '',
+    isPaid: fee?.isPaid || false
+  });
+  const [students, setStudents] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    studentsApi.getAll().then(setStudents).catch(console.error);
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.studentId || !formData.amount || !formData.dueDate) {
+      setError('Please fill all required fields');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+      if (fee) {
+        await feesApi.update(fee.id, {
+          ...formData,
+          studentId: parseInt(formData.studentId),
+          amount: parseFloat(formData.amount),
+          isPaid: formData.isPaid
+        });
+      } else {
+        await feesApi.create({
+          ...formData,
+          studentId: parseInt(formData.studentId),
+          amount: parseFloat(formData.amount),
+          isPaid: formData.isPaid
+        });
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err.message || 'Failed to save fee record');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg relative">
+        <button onClick={onClose} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 z-10">
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="p-6 border-b border-slate-100">
+          <h2 className="text-xl font-display font-bold text-navy-900">
+            {fee ? 'Edit Fee Record' : 'Create New Fee Record'}
+          </h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Student *</label>
+            <select
+              value={formData.studentId}
+              onChange={(e) => setFormData({...formData, studentId: e.target.value})}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500 bg-white"
+              required
+            >
+              <option value="">Select Student</option>
+              {students.map(s => (
+                <option key={s.id} value={s.id}>{s.name} (Class {s.class?.name})</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Amount (₹) *</label>
+            <input
+              type="number"
+              value={formData.amount}
+              onChange={(e) => setFormData({...formData, amount: e.target.value})}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500"
+              placeholder="e.g. 12500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Due Date *</label>
+            <input
+              type="date"
+              value={formData.dueDate}
+              onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-500"
+              required
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isPaid"
+              checked={formData.isPaid}
+              onChange={(e) => setFormData({...formData, isPaid: e.target.checked})}
+              className="h-4 w-4 text-saffron-500 focus:ring-saffron-500 border-slate-300 rounded"
+            />
+            <label htmlFor="isPaid" className="text-sm font-medium text-slate-700">Mark as Paid</label>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="btn btn-outline">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="btn btn-accent">
+              {submitting ? 'Saving...' : (fee ? 'Update Fee' : 'Create Fee')}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -181,21 +419,33 @@ function OutstandingDues() {
 
   return (
     <div className="card">
-      <div className="p-5 border-b border-slate-100 bg-white"><h2 className="text-lg font-bold text-navy-900">Outstanding Dues Summary</h2></div>
+      <div className="p-5 border-b border-slate-100 bg-white">
+        <h2 className="text-lg font-bold text-navy-900">Outstanding Dues Summary</h2>
+      </div>
       <div className="overflow-x-auto">
         {loading ? (
-          <div className="flex items-center justify-center py-12"><Loader className="h-8 w-8 animate-spin text-navy-600" /></div>
+          <div className="flex items-center justify-center py-12">
+            <Loader className="h-8 w-8 animate-spin text-navy-600" />
+          </div>
         ) : outstanding.length === 0 ? (
           <div className="text-center py-12 text-slate-500">No outstanding dues</div>
         ) : (
           <table>
             <thead>
-              <tr><th>Student</th><th>Class</th><th className="text-right">Total Due</th><th className="text-right">Pending Records</th></tr>
+              <tr>
+                <th>Student</th>
+                <th>Class</th>
+                <th className="text-right">Total Due</th>
+                <th className="text-right">Pending Records</th>
+              </tr>
             </thead>
             <tbody>
               {outstanding.map((item, idx) => (
                 <tr key={idx}>
-                  <td><div className="font-semibold text-navy-900">{item.student.name}</div><div className="text-xs text-slate-500">ID: {item.student.id}</div></td>
+                  <td>
+                    <div className="font-semibold text-navy-900">{item.student.name}</div>
+                    <div className="text-xs text-slate-500">ID: {item.student.id}</div>
+                  </td>
                   <td>{item.student.class?.name}-{item.student.section?.name}</td>
                   <td className="text-right font-bold text-red-600">₹{item.totalDue.toLocaleString('en-IN')}</td>
                   <td className="text-right">{item.pendingCount}</td>
@@ -213,12 +463,16 @@ function ReceiptModal({ receipt, onClose }) {
   return (
     <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 z-10"><X className="h-5 w-5" /></button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 z-10">
+          <X className="h-5 w-5" />
+        </button>
         <div className="p-8 border-4 border-slate-100 m-2 relative bg-white">
           <div className="text-center relative z-10">
             <h2 className="text-xl font-bold text-navy-900 uppercase">VidyaERP Public School</h2>
             <p className="text-xs text-slate-600">Sector 14, New Delhi - 110001, India</p>
-            <div className="inline-block border border-navy-900 px-3 py-1 mt-3 mb-4"><h3 className="text-sm font-bold tracking-widest text-navy-900 uppercase">FEE RECEIPT</h3></div>
+            <div className="inline-block border border-navy-900 px-3 py-1 mt-3 mb-4">
+              <h3 className="text-sm font-bold tracking-widest text-navy-900 uppercase">FEE RECEIPT</h3>
+            </div>
           </div>
           <div className="flex justify-between text-xs mb-4">
             <div className="space-y-1">
@@ -263,7 +517,9 @@ function ReceiptModal({ receipt, onClose }) {
         </div>
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-100">Close</button>
-          <button className="flex items-center px-6 py-2 bg-saffron-500 text-white rounded-lg text-sm font-medium hover:bg-saffron-600"><Printer className="h-4 w-4 mr-2" /> Print PDF</button>
+          <button className="flex items-center px-6 py-2 bg-saffron-500 text-white rounded-lg text-sm font-medium hover:bg-saffron-600">
+            <Printer className="h-4 w-4 mr-2" /> Print PDF
+          </button>
         </div>
       </div>
     </div>

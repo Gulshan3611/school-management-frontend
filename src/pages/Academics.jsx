@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, BookOpen, PenTool, Plus, Loader } from 'lucide-react';
+import { Calendar as CalendarIcon, BookOpen, PenTool, Plus, Loader, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { classesApi } from '../services/api';
 
 const timetableData = [
@@ -41,15 +42,67 @@ export function Academics() {
           <p className="text-sm text-slate-500 font-medium mt-1">Timetable, syllabus tracking, and homework</p>
         </div>
         <div className="flex bg-slate-200/50 p-1.5 rounded-xl border border-slate-200/50 backdrop-blur-sm">
-          <button onClick={() => setActiveTab('timetable')} className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center ${activeTab === 'timetable' ? 'bg-white shadow-sm text-navy-900' : 'text-slate-500 hover:text-navy-600'}`}><CalendarIcon className="h-4 w-4 mr-2" /> Timetable</button>
-          <button onClick={() => setActiveTab('homework')} className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center ${activeTab === 'homework' ? 'bg-white shadow-sm text-navy-900' : 'text-slate-500 hover:text-navy-600'}`}><PenTool className="h-4 w-4 mr-2" /> Homework</button>
-          <button onClick={() => setActiveTab('syllabus')} className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center ${activeTab === 'syllabus' ? 'bg-white shadow-sm text-navy-900' : 'text-slate-500 hover:text-navy-600'}`}><BookOpen className="h-4 w-4 mr-2" /> Syllabus</button>
+          <button 
+            onClick={() => setActiveTab('timetable')} 
+            className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center ${activeTab === 'timetable' ? 'bg-white shadow-sm text-navy-900' : 'text-slate-500 hover:text-navy-600'}`}
+          >
+            <CalendarIcon className="h-4 w-4 mr-2" /> Timetable
+          </button>
+          <Link to="/homework">
+            <button 
+              className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center ${activeTab === 'homework' ? 'bg-white shadow-sm text-navy-900' : 'text-slate-500 hover:text-navy-600'}`}
+            >
+              <PenTool className="h-4 w-4 mr-2" /> Homework
+            </button>
+          </Link>
+          <Link to="/syllabus">
+            <button 
+              className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center ${activeTab === 'syllabus' ? 'bg-white shadow-sm text-navy-900' : 'text-slate-500 hover:text-navy-600'}`}
+            >
+              <BookOpen className="h-4 w-4 mr-2" /> Syllabus
+            </button>
+          </Link>
         </div>
       </div>
 
       {activeTab === 'timetable' && <Timetable classes={classes} loading={loading} />}
-      {activeTab === 'homework' && <Homework />}
-      {activeTab === 'syllabus' && <Syllabus />}
+      {activeTab === 'homework' && (
+        <RedirectCard 
+          title="Daily Homework Log"
+          description="Record assignments subject-wise and track submission status."
+          link="/homework"
+          buttonText="Go to Homework Page"
+          icon={PenTool}
+          iconColor="text-blue-500 bg-blue-100"
+        />
+      )}
+      {activeTab === 'syllabus' && (
+        <RedirectCard 
+          title="Syllabus Tracker"
+          description="Track chapter completion status against the academic calendar."
+          link="/syllabus"
+          buttonText="Go to Syllabus Page"
+          icon={BookOpen}
+          iconColor="text-purple-500 bg-purple-100"
+        />
+      )}
+    </div>
+  );
+}
+
+function RedirectCard({ title, description, link, buttonText, icon: Icon, iconColor }) {
+  return (
+    <div className="card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
+      <div className={`h-20 w-20 rounded-2xl flex items-center justify-center mb-6 mx-auto ${iconColor}`}>
+        <Icon className="h-10 w-10" />
+      </div>
+      <h2 className="text-2xl font-display font-bold text-navy-900 mb-3">{title}</h2>
+      <p className="text-slate-500 max-w-md mb-8 text-base">{description}</p>
+      <Link to={link}>
+        <button className="btn btn-primary btn-lg px-8 py-3 text-base flex items-center">
+          <ExternalLink className="h-5 w-5 mr-2" /> {buttonText}
+        </button>
+      </Link>
     </div>
   );
 }
@@ -71,7 +124,11 @@ function Timetable({ classes, loading }) {
             {selectedClass && classes.find(c => c.id === parseInt(selectedClass))?.sections.map(sec => <option key={sec.id} value={sec.id}>{sec.name}</option>)}
           </select>
         </div>
-        <button className="btn btn-accent flex items-center"><PenTool className="h-4 w-4 mr-2" /> Edit Timetable</button>
+        <Link to="/timetable">
+          <button className="btn btn-accent flex items-center">
+            <PenTool className="h-4 w-4 mr-2" /> Edit Timetable
+          </button>
+        </Link>
       </div>
       <div className="overflow-x-auto">
         <table>
@@ -107,28 +164,6 @@ function Timetable({ classes, loading }) {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function Homework() {
-  return (
-    <div className="card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-      <div className="h-20 w-20 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-500 mb-6 mx-auto"><PenTool className="h-10 w-10" /></div>
-      <h2 className="text-2xl font-display font-bold text-navy-900 mb-3">Daily Homework Log</h2>
-      <p className="text-slate-500 max-w-md mb-8 text-base">Record assignments subject-wise and track submission status.</p>
-      <button className="btn btn-primary btn-lg px-8 py-3 text-base flex items-center"><Plus className="h-5 w-5 mr-2" /> Add New Assignment</button>
-    </div>
-  );
-}
-
-function Syllabus() {
-  return (
-    <div className="card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-      <div className="h-20 w-20 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-500 mb-6 mx-auto"><BookOpen className="h-10 w-10" /></div>
-      <h2 className="text-2xl font-display font-bold text-navy-900 mb-3">Syllabus Tracker</h2>
-      <p className="text-slate-500 max-w-md mb-8 text-base">Track chapter completion status against the academic calendar.</p>
-      <button className="btn btn-primary btn-lg px-8 py-3 text-base flex items-center"><Plus className="h-5 w-5 mr-2" /> Update Progress</button>
     </div>
   );
 }
